@@ -3,6 +3,9 @@ using UnityEngine.InputSystem;
 
 public class FirstPersonController : MonoBehaviour
 {
+    public static FirstPersonController Instance;
+    public DartScript dartScript;
+
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float gravity = -9.8f;
 
@@ -26,6 +29,8 @@ public class FirstPersonController : MonoBehaviour
 
     private void Start()
     {
+        if (Instance == null) Instance = this;
+        dartScript = DartScript.Instance;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         aim.SetActive(true);
@@ -49,6 +54,11 @@ public class FirstPersonController : MonoBehaviour
     public void OnLook(InputAction.CallbackContext context)
     {
         _lookInput = context.ReadValue<Vector2>();
+    }
+
+    public void OnThrow(InputAction.CallbackContext context)
+    {
+        dartScript.ThrowDart();
     }
 
     private void Movement()

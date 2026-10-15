@@ -1,38 +1,39 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class DartScript : MonoBehaviour
 {
+    public static DartScript Instance;
+    public GameManager gameManager;
+
     public GameObject dartPrefab;
     public Transform spawnPoint;
-    public float dartSpeed = 15f;
+    public float dartForce = 10000f;
+
+    public float cooldownTime = .5f;
+    private bool onCooldown = false;
 
     public Camera mainCamera;
-    private float maxRange = 20f;
+    private float maxRange = 500f;
 
-    private Rigidbody rb;
+    public Rigidbody rb;
     private bool hasHit = false;
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
+        rb = dartPrefab.GetComponent<Rigidbody>();
+        if (Instance == null) Instance = this;
+        rb.linearVelocity = transform.forward * dartForce;
+        gameManager = GameManager.Instance;
     }
 
-    private void Update()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            ThrowDart();
-        }
-    }
-
-
-    void ThrowDart()
+    public void ThrowDart()
     {
         Ray ray = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
         RaycastHit hit;
         Vector3 targetPoint;
 
-        if (Physics.Raycast(ray, out hit))
+        if (Physics.Raycast(ray, out hit, maxRange))
         {
             targetPoint = hit.point;
         }
@@ -44,19 +45,28 @@ public class DartScript : MonoBehaviour
         Vector3 direction = (targetPoint - spawnPoint.position).normalized;
 
         Instantiate(dartPrefab, spawnPoint.position, Quaternion.LookRotation(direction));
+        StartCoroutine(SpawnCooldown());
+        rb.AddForce(rb.linearVelocity, ForceMode.Impulse);
         
-        if (rb != null)
-        {
-            rb.linearVelocity = direction * dartSpeed;
-        }
     }
 
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (hasHit) return;
 
-        if (collision.gameObject.CompareTag("Balloon"))
+    IEnumerator SpawnCooldown()
+    {
+        onCooldown = true;
+
+        yield return new WaitForSeconds(cooldownTime);
+
+        onCooldown = false;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+
+        if (other.gameObject.CompareTag("Balloon"))
         {
+
+            gameManager.AddScore();
             Destroy(gameObject);
         }
     }
